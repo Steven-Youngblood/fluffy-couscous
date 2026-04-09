@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AuthToken {
+  id           String   @id @default("primary")
+  accessToken  String // AES-256 encrypted
+  refreshToken String // AES-256 encrypted
+  expiresAt    DateTime
+  updatedAt    DateTime @updatedAt
+}
+
+model Booking {
+  id              String   @id @default(cuid())
+  meetingType     String
+  startTime       DateTime
+  endTime         DateTime
+  bookerName      String
+  bookerEmail     String
+  notes           String?
+  graphEventId    String?
+  status          String   @default("confirmed") // confirmed, cancelled, rescheduled
+  cancellationKey String   @unique @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([startTime, endTime])
+  @@index([status])
+}
+
+model MeetingType {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String
+  durationMin Int
+  color       String  @default("#2563eb")
+  isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
+}
