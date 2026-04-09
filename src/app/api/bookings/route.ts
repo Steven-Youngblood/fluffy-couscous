@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const end = new Date(start.getTime() + meetingType.durationMin * 60 * 1000);
 
     // Race-condition guard: re-check availability
-    const dateStr = startTime.split("T")[0];
+    const dateStr = new Date(startTime).toLocaleDateString("sv-SE", { timeZone: TIMEZONE });
     const availableSlots = await getAvailableSlots(
       dateStr,
       meetingType.durationMin

@@ -18,11 +18,10 @@ export async function getFreeBusy(
   endDate: string,
   timezone: string
 ): Promise<FreeBusyBlock[]> {
-  const accessToken = await getAccessToken();
-  const client = getGraphClient(accessToken);
-
   // Use calendarView to get all events in the time range
   try {
+    const accessToken = await getAccessToken();
+    const client = getGraphClient(accessToken);
     const result = await client
       .api("/me/calendarView")
       .query({
