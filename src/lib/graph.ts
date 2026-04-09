@@ -21,23 +21,30 @@ export async function getFreeBusy(
   const accessToken = await getAccessToken();
   const client = getGraphClient(accessToken);
 
-  const result = await client.api("/me/calendar/getSchedule").post({
-    schedules: ["me"],
-    startTime: { dateTime: startDate, timeZone: timezone },
-    endTime: { dateTime: endDate, timeZone: timezone },
-    availabilityViewInterval: 15,
-  });
-
-  const schedule = result.value?.[0];
-  if (!schedule?.scheduleItems) return [];
-
-  return schedule.scheduleItems.map(
-    (item: { start: { dateTime: string }; end: { dateTime: string }; status: string }) => ({
-      start: item.start.dateTime,
-      end: item.end.dateTime,
-      status: item.status,
+  // Use calendarView to get all events in the time range
+  const result = await client
+    .api("/me/calendarView")
+    .query({
+      startDateTime: `${startDate}`,
+      endDateTime: `${endDate}`,
+      $select: "start,end,showAs",
+      $top: 50,
     })
-  );
+    .header("Prefer", `outlook.timezone="${timezone}"`)
+    .get();
+
+  if (!result?.value) return [];
+
+  return result.value
+    .filter((event: { showAs: string }) =>
+      // Include busy, tentative, and out-of-office events
+      event.showAs !== "free"
+    )
+    .map((event: { start: { dateTime: string }; end: { dateTime: string }; showAs: string }) => ({
+      start: event.start.dateTime,
+      end: event.end.dateTime,
+      status: event.showAs,
+    }));
 }
 
 export interface CreateEventParams {
