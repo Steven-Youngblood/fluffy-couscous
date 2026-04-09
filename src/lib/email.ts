@@ -28,6 +28,7 @@ interface BookingEmailParams {
   endTime: Date;
   notes?: string | null;
   cancellationKey: string;
+  teamsLink?: string | null;
 }
 
 export async function sendBookingConfirmation(params: BookingEmailParams) {
@@ -51,6 +52,7 @@ export async function sendBookingConfirmation(params: BookingEmailParams) {
         <p>Your <strong>${params.meetingTypeName}</strong> has been confirmed.</p>
         <div style="background: #f0f4ff; padding: 16px; border-radius: 8px; margin: 16px 0;">
           <p style="margin: 4px 0;"><strong>When:</strong> ${dateStr} – ${endStr}</p>
+          ${params.teamsLink ? `<p style="margin: 4px 0;"><strong>Join meeting:</strong> <a href="${params.teamsLink}" style="color: #2563eb;">Microsoft Teams Link</a></p>` : ""}
           ${params.notes ? `<p style="margin: 4px 0;"><strong>Notes:</strong> ${params.notes}</p>` : ""}
         </div>
         <p>A calendar invitation has been sent to your email.</p>

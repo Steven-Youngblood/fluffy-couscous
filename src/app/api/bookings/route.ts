@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     const startLocal = start.toLocaleString("sv-SE", { timeZone: TIMEZONE }).replace(" ", "T");
     const endLocal = end.toLocaleString("sv-SE", { timeZone: TIMEZONE }).replace(" ", "T");
 
-    const graphEventId = await createCalendarEvent({
+    const graphEvent = await createCalendarEvent({
       subject: `${meetingType.name} — ${bookerName}`,
       startDateTime: startLocal,
       endDateTime: endLocal,
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         bookerName,
         bookerEmail,
         notes: notes || null,
-        graphEventId,
+        graphEventId: graphEvent.id,
       },
     });
 
@@ -116,6 +116,7 @@ export async function POST(request: NextRequest) {
         endTime: end,
         notes,
         cancellationKey: booking.cancellationKey,
+        teamsLink: graphEvent.teamsLink,
       });
     } catch (emailError) {
       console.error("Failed to send confirmation email:", emailError);

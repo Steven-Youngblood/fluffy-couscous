@@ -71,7 +71,7 @@ export interface CreateEventParams {
 
 export async function createCalendarEvent(
   params: CreateEventParams
-): Promise<string> {
+): Promise<{ id: string; teamsLink: string | null }> {
   const accessToken = await getAccessToken();
   const client = getGraphClient(accessToken);
 
@@ -98,9 +98,13 @@ export async function createCalendarEvent(
       ? { contentType: "HTML", content: params.body }
       : undefined,
     isOnlineMeeting: true,
+    onlineMeetingProvider: "teamsForBusiness",
   });
 
-  return event.id;
+  return {
+    id: event.id as string,
+    teamsLink: (event.onlineMeeting?.joinUrl as string) || null,
+  };
 }
 
 export async function deleteCalendarEvent(eventId: string): Promise<void> {
