@@ -7,7 +7,7 @@ export const BUFFER_MINUTES = 15;
 export const MAX_ADVANCE_DAYS = 60;
 
 // Minimum notice required for booking (in hours)
-export const MIN_NOTICE_HOURS = 24;
+export const MIN_NOTICE_HOURS = 2;
 
 // Working hours per day of week (0 = Sunday, 6 = Saturday)
 // null means not available
