@@ -60,11 +60,19 @@ export async function getAvailableSlots(
   });
 
   // Merge all busy periods (Graph + DB bookings) with buffer
+  // Graph API returns NZ times without timezone suffix — convert them using parseTimeInDate
   const busyPeriods = [
-    ...busyBlocks.map((b) => ({
-      start: new Date(b.start).getTime() - BUFFER_MINUTES * 60 * 1000,
-      end: new Date(b.end).getTime() + BUFFER_MINUTES * 60 * 1000,
-    })),
+    ...busyBlocks.map((b) => {
+      // Parse "2026-04-17T09:00:00.0000000" as NZ time → UTC
+      const startParts = b.start.split("T");
+      const endParts = b.end.split("T");
+      const busyStart = parseTimeInDate(startParts[0], startParts[1].slice(0, 5));
+      const busyEnd = parseTimeInDate(endParts[0], endParts[1].slice(0, 5));
+      return {
+        start: busyStart.getTime() - BUFFER_MINUTES * 60 * 1000,
+        end: busyEnd.getTime() + BUFFER_MINUTES * 60 * 1000,
+      };
+    }),
     ...dbBookings.map((b: { startTime: Date; endTime: Date }) => ({
       start: b.startTime.getTime() - BUFFER_MINUTES * 60 * 1000,
       end: b.endTime.getTime() + BUFFER_MINUTES * 60 * 1000,

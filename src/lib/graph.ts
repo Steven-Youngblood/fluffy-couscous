@@ -22,29 +22,41 @@ export async function getFreeBusy(
   const client = getGraphClient(accessToken);
 
   // Use calendarView to get all events in the time range
-  const result = await client
-    .api("/me/calendarView")
-    .query({
-      startDateTime: `${startDate}`,
-      endDateTime: `${endDate}`,
-      $select: "start,end,showAs",
-      $top: 50,
-    })
-    .header("Prefer", `outlook.timezone="${timezone}"`)
-    .get();
+  try {
+    const result = await client
+      .api("/me/calendarView")
+      .query({
+        startDateTime: `${startDate}`,
+        endDateTime: `${endDate}`,
+        $select: "subject,start,end,showAs",
+        $top: 50,
+      })
+      .header("Prefer", `outlook.timezone="${timezone}"`)
+      .get();
 
-  if (!result?.value) return [];
+    console.log(`[Graph] calendarView returned ${result?.value?.length ?? 0} events for ${startDate} to ${endDate}`);
 
-  return result.value
-    .filter((event: { showAs: string }) =>
-      // Include busy, tentative, and out-of-office events
-      event.showAs !== "free"
-    )
-    .map((event: { start: { dateTime: string }; end: { dateTime: string }; showAs: string }) => ({
-      start: event.start.dateTime,
-      end: event.end.dateTime,
-      status: event.showAs,
-    }));
+    if (!result?.value) return [];
+
+    const blocks = result.value
+      .filter((event: { showAs: string }) =>
+        // Include busy, tentative, and out-of-office events
+        event.showAs !== "free"
+      )
+      .map((event: { subject: string; start: { dateTime: string }; end: { dateTime: string }; showAs: string }) => {
+        console.log(`[Graph] Event: "${event.subject}" ${event.start.dateTime} - ${event.end.dateTime} (${event.showAs})`);
+        return {
+          start: event.start.dateTime,
+          end: event.end.dateTime,
+          status: event.showAs,
+        };
+      });
+
+    return blocks;
+  } catch (error) {
+    console.error("[Graph] calendarView error:", error);
+    return [];
+  }
 }
 
 export interface CreateEventParams {
