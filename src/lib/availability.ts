@@ -105,25 +105,22 @@ export async function getAvailableSlots(
 }
 
 function getDayOfWeek(dateStr: string): number {
-  // Create date at noon to avoid timezone edge cases
-  const d = new Date(`${dateStr}T12:00:00`);
-  // Get the day in NZ timezone
-  const nzDay = new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    timeZone: TIMEZONE,
-  }).format(d);
-  const dayMap: Record<string, number> = {
-    Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
-  };
-  return dayMap[nzDay] ?? 0;
+  // Parse date components directly — no timezone conversion needed
+  // because dateStr IS the NZ calendar date (e.g. "2026-04-10" = Friday)
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day).getDay();
 }
 
 function parseTimeInDate(dateStr: string, time: string): Date {
-  // Create a date in NZ timezone
+  // Convert a NZ date + time (e.g. "2026-04-10" + "09:00") to a UTC Date.
+  // We find the NZ→UTC offset by comparing a known UTC instant with its NZ representation.
   const [hours, minutes] = time.split(":").map(Number);
-  // Use a formatter to figure out the UTC offset for this date in NZST/NZDT
-  const dateAtNoon = new Date(`${dateStr}T12:00:00Z`);
-  const nzFormatter = new Intl.DateTimeFormat("en-US", {
+
+  // Use a reference point at midnight UTC on this date
+  const refUtc = new Date(`${dateStr}T00:00:00Z`);
+
+  // Format that UTC instant in NZ timezone to find the offset
+  const nzParts = new Intl.DateTimeFormat("en-US", {
     timeZone: TIMEZONE,
     year: "numeric",
     month: "2-digit",
@@ -132,21 +129,22 @@ function parseTimeInDate(dateStr: string, time: string): Date {
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
-  });
+  }).formatToParts(refUtc);
 
-  // Get the NZ offset by comparing UTC noon with NZ noon
-  const parts = nzFormatter.formatToParts(dateAtNoon);
-  const getPart = (type: string) =>
-    parts.find((p) => p.type === type)?.value ?? "0";
-  const nzDate = new Date(
-    `${getPart("year")}-${getPart("month")}-${getPart("day")}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`
+  const get = (type: string) => parseInt(nzParts.find((p) => p.type === type)?.value ?? "0");
+  // What NZ shows when it's midnight UTC
+  const nzAtRefMs = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  // Offset = NZ time - UTC time (positive means NZ is ahead)
+  const offsetMs = nzAtRefMs - refUtc.getTime();
+
+  // The desired NZ time as a UTC timestamp, then subtract the offset to get actual UTC
+  const nzTargetMs = Date.UTC(
+    parseInt(dateStr.slice(0, 4)),
+    parseInt(dateStr.slice(5, 7)) - 1,
+    parseInt(dateStr.slice(8, 10)),
+    hours,
+    minutes
   );
 
-  // Calculate offset: what UTC time corresponds to this NZ time?
-  const utcAtNoon = dateAtNoon.getTime();
-  const nzNoonStr = `${getPart("year")}-${getPart("month")}-${getPart("day")}T${getPart("hour")}:${getPart("minute")}:${getPart("second")}`;
-  const nzNoonLocal = new Date(nzNoonStr).getTime();
-  const offsetMs = utcAtNoon - nzNoonLocal;
-
-  return new Date(nzDate.getTime() + offsetMs);
+  return new Date(nzTargetMs - offsetMs);
 }
