@@ -43,9 +43,10 @@ export async function getAvailableSlots(
   const workEnd = parseTimeInDate(dateStr, hours.end);
 
   // Fetch busy blocks from Outlook
+  // Use midnight-to-midnight to capture all-day events too
   const busyBlocks = await getFreeBusy(
-    `${dateStr}T${hours.start}:00`,
-    `${dateStr}T${hours.end}:00`,
+    `${dateStr}T00:00:00`,
+    `${dateStr}T23:59:59`,
     TIMEZONE
   );
 
