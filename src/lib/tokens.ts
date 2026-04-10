@@ -14,6 +14,20 @@ function getMsalClient(): ConfidentialClientApplication {
   });
 }
 
+/**
+ * Extract refresh token from MSAL's internal token cache.
+ * MSAL Node doesn't expose it on the AuthenticationResult — it's only in the cache.
+ * On serverless (Vercel), the in-memory cache is lost between invocations,
+ * so we must extract and persist it ourselves.
+ */
+function extractRefreshToken(client: ConfidentialClientApplication): string {
+  const cache = JSON.parse(client.getTokenCache().serialize());
+  const refreshTokens = cache.RefreshToken;
+  if (!refreshTokens) return "";
+  const firstKey = Object.keys(refreshTokens)[0];
+  return firstKey ? (refreshTokens[firstKey].secret ?? "") : "";
+}
+
 export function getAuthUrl(redirectUri: string): string {
   const params = new URLSearchParams({
     client_id: process.env.AZURE_CLIENT_ID!,
@@ -38,22 +52,20 @@ export async function exchangeCodeForTokens(
 
   if (!result) throw new Error("Failed to acquire tokens");
 
+  const refreshToken = extractRefreshToken(client);
+
   // Store encrypted tokens
   await prisma.authToken.upsert({
     where: { id: "primary" },
     create: {
       id: "primary",
       accessToken: encrypt(result.accessToken),
-      refreshToken: encrypt(
-        (result as unknown as { refreshToken?: string }).refreshToken ?? ""
-      ),
+      refreshToken: encrypt(refreshToken),
       expiresAt: result.expiresOn ?? new Date(Date.now() + 3600 * 1000),
     },
     update: {
       accessToken: encrypt(result.accessToken),
-      refreshToken: encrypt(
-        (result as unknown as { refreshToken?: string }).refreshToken ?? ""
-      ),
+      refreshToken: encrypt(refreshToken),
       expiresAt: result.expiresOn ?? new Date(Date.now() + 3600 * 1000),
     },
   });
@@ -86,14 +98,14 @@ export async function getAccessToken(): Promise<string> {
 
   if (!result) throw new Error("Failed to refresh token");
 
+  // Extract new refresh token from cache (Microsoft may rotate it)
+  const newRefreshToken = extractRefreshToken(client) || refreshToken;
+
   await prisma.authToken.update({
     where: { id: "primary" },
     data: {
       accessToken: encrypt(result.accessToken),
-      refreshToken: encrypt(
-        (result as unknown as { refreshToken?: string }).refreshToken ??
-          refreshToken
-      ),
+      refreshToken: encrypt(newRefreshToken),
       expiresAt: result.expiresOn ?? new Date(Date.now() + 3600 * 1000),
     },
   });
