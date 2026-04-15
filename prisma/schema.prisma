@@ -23,6 +23,7 @@ model Booking {
   bookerName      String
   bookerEmail     String
   notes           String?
+  meetingLocation String?
   graphEventId    String?
   status          String   @default("confirmed") // confirmed, cancelled, rescheduled
   cancellationKey String   @unique @default(cuid())
@@ -40,6 +41,7 @@ model MeetingType {
   description String
   durationMin Int
   color       String  @default("#2563eb")
-  isActive    Boolean @default(true)
-  sortOrder   Int     @default(0)
+  isActive      Boolean @default(true)
+  sortOrder     Int     @default(0)
+  allowInPerson Boolean @default(false)
 }

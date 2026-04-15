@@ -18,6 +18,7 @@ export async function GET(
       description: mt.description,
       durationMin: mt.durationMin,
       color: mt.color,
+      allowInPerson: mt.allowInPerson,
     });
   } catch {
     // Fallback to defaults if DB not available

@@ -13,6 +13,7 @@ const BookingSchema = z.object({
   bookerName: z.string().min(1).max(200),
   bookerEmail: z.email(),
   notes: z.string().max(1000).optional(),
+  meetingLocation: z.string().trim().min(1).max(300).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -41,8 +42,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { meetingTypeSlug, startTime, bookerName, bookerEmail, notes } =
-    parsed.data;
+  const {
+    meetingTypeSlug,
+    startTime,
+    bookerName,
+    bookerEmail,
+    notes,
+    meetingLocation,
+  } = parsed.data;
 
   try {
     // Look up meeting type
@@ -54,6 +61,13 @@ export async function POST(request: NextRequest) {
       return Response.json(
         { error: "Meeting type not found" },
         { status: 404 }
+      );
+    }
+
+    if (meetingLocation && !meetingType.allowInPerson) {
+      return Response.json(
+        { error: "This meeting type does not support in-person meetings." },
+        { status: 400 }
       );
     }
 
@@ -91,6 +105,7 @@ export async function POST(request: NextRequest) {
       body: notes
         ? `<p><strong>Notes from ${bookerName}:</strong></p><p>${notes}</p>`
         : undefined,
+      location: meetingLocation,
     });
 
     // Store booking in database
@@ -102,6 +117,7 @@ export async function POST(request: NextRequest) {
         bookerName,
         bookerEmail,
         notes: notes || null,
+        meetingLocation: meetingLocation || null,
         graphEventId: graphEvent.id,
       },
     });
@@ -115,6 +131,7 @@ export async function POST(request: NextRequest) {
         startTime: start,
         endTime: end,
         notes,
+        meetingLocation,
         cancellationKey: booking.cancellationKey,
         teamsLink: graphEvent.teamsLink,
       });

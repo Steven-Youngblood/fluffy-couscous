@@ -13,12 +13,15 @@ function BookingForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+  const [inPerson, setInPerson] = useState(false);
+  const [meetingLocation, setMeetingLocation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [meetingInfo, setMeetingInfo] = useState<{
     name: string;
     durationMin: number;
+    allowInPerson?: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -64,6 +67,10 @@ function BookingForm() {
           bookerName: name,
           bookerEmail: email,
           notes: notes || undefined,
+          meetingLocation:
+            inPerson && meetingLocation.trim()
+              ? meetingLocation.trim()
+              : undefined,
         }),
       });
 
@@ -172,6 +179,30 @@ function BookingForm() {
             placeholder="Anything you'd like to discuss..."
           />
         </div>
+
+        {meetingInfo?.allowInPerson && (
+          <div>
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={inPerson}
+                onChange={(e) => setInPerson(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span>I&rsquo;d like to meet in person</span>
+            </label>
+            {inPerson && (
+              <input
+                type="text"
+                value={meetingLocation}
+                onChange={(e) => setMeetingLocation(e.target.value)}
+                maxLength={300}
+                className="mt-2 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Suggest a place, e.g. Caffe L'affare, Wellington"
+              />
+            )}
+          </div>
+        )}
 
         {error && (
           <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">

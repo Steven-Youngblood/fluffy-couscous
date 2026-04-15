@@ -66,6 +66,7 @@ export interface CreateEventParams {
   attendeeEmail: string;
   attendeeName: string;
   body?: string;
+  location?: string;
 }
 
 export async function createCalendarEvent(
@@ -95,6 +96,9 @@ export async function createCalendarEvent(
     ],
     body: params.body
       ? { contentType: "HTML", content: params.body }
+      : undefined,
+    location: params.location
+      ? { displayName: params.location }
       : undefined,
     isOnlineMeeting: true,
     onlineMeetingProvider: "teamsForBusiness",
