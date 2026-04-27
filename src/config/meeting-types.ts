@@ -26,7 +26,7 @@ export const DEFAULT_MEETING_TYPES: MeetingTypeConfig[] = [
       "A 60-minute deep-dive session to develop actionable strategies for your business.",
     durationMin: 60,
     color: "#7c3aed",
-    allowInPerson: false,
+    allowInPerson: true,
   },
   {
     slug: "followup",
